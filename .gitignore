@@ -28,3 +28,11 @@ next-env.d.ts
 
 # database
 /data
+*.db
+*.db-*
+
+# nginx
+/nginx/logs/*.log
+/nginx/ssl/*.pem
+/nginx/ssl/*.key
+/nginx/ssl/*.crt
