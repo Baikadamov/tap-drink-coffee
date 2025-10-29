@@ -1,6 +1,9 @@
 # Используем официальный Node.js образ
 FROM node:20-alpine AS base
 
+# Установка зависимостей для компиляции нативных модулей (better-sqlite3)
+RUN apk add --no-cache libc6-compat python3 make g++
+
 # Установка pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -29,8 +32,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
 
 # Продакшн образ
-FROM base AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
+
+# Устанавливаем только runtime зависимости для better-sqlite3
+RUN apk add --no-cache libc6-compat
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -42,10 +48,14 @@ RUN adduser --system --uid 1001 nextjs
 # Создаем директорию для базы данных
 RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
 
-# Копируем необходимые файлы
+# Копируем необходимые файлы из builder
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+
+# Копируем node_modules с скомпилированным better-sqlite3
+# Standalone режим Next.js не включает нативные модули автоматически
+COPY --from=builder /app/node_modules ./node_modules
 
 # Устанавливаем правильные права
 RUN chown -R nextjs:nodejs /app
