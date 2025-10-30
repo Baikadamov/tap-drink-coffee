@@ -7,16 +7,10 @@ const nextConfig = {
     unoptimized: true,
   },
   output: 'standalone',
-  experimental: {
-    serverComponentsExternalPackages: ['better-sqlite3'],
-  },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Исключаем нативные модули из бандла
-      config.externals.push('better-sqlite3')
-    }
-    return config
-  },
+  // В Next.js 16 переименовано из experimental.serverComponentsExternalPackages
+  serverExternalPackages: ['better-sqlite3'],
+  // Пустая конфигурация Turbopack для подавления предупреждения
+  turbopack: {},
 }
 
 export default nextConfig
