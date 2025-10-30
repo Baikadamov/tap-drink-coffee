@@ -97,7 +97,7 @@ export default function HomePage() {
 
             <div className="rounded-[3rem] overflow-hidden aspect-[3/4] relative">
               <Image
-                src="/hands-holding-coffee-cup-with-latte-art-in-paper-c.jpg"
+                src="/tattoo-am-finger.jpg"
                 alt="Coffee cup with latte art"
                 fill
                 className="object-cover"
