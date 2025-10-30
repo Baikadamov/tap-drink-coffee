@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build:
@@ -9,8 +7,9 @@ services:
     environment:
       - NODE_ENV=production
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - USE_HTTPS=false
     volumes:
-      - ./data:/app/data
+      - app-data:/app/data
     restart: unless-stopped
     networks:
       - top-drink-network
@@ -36,3 +35,6 @@ networks:
   top-drink-network:
     driver: bridge
 
+volumes:
+  app-data:
+    driver: local

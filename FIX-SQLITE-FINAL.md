@@ -20,10 +20,26 @@
 
 ## 🚀 Что делать на сервере
 
+### ⚠️ ВАЖНО: Исправление прав доступа
+
+Если директория `./data` уже существует на сервере, нужно исправить права:
+
+```bash
+cd ~/tap-drink-coffee
+docker compose down
+
+# Вариант 1: Удалить старую директорию (если нет важных данных)
+sudo rm -rf ./data
+
+# Вариант 2: Изменить права (если есть важные данные)
+sudo chown -R 1001:1001 ./data
+sudo chmod -R 755 ./data
+```
+
 ### Быстрое исправление (одна команда):
 
 ```bash
-cd ~/tap-drink-coffee && git pull && docker compose down && docker compose build --no-cache && docker compose up -d
+cd ~/tap-drink-coffee && docker compose down && sudo rm -rf ./data && git pull && docker compose build --no-cache && docker compose up -d
 ```
 
 ### Пошаговая инструкция:
@@ -32,19 +48,22 @@ cd ~/tap-drink-coffee && git pull && docker compose down && docker compose build
 # 1. Перейти в директорию проекта
 cd ~/tap-drink-coffee
 
-# 2. Получить последние изменения
-git pull
-
-# 3. Остановить контейнеры
+# 2. Остановить контейнеры
 docker compose down
 
-# 4. Пересобрать образ с нуля (это займет 5-10 минут)
+# 3. Удалить старую директорию data (или изменить права - см. выше)
+sudo rm -rf ./data
+
+# 4. Получить последние изменения
+git pull
+
+# 5. Пересобрать образ с нуля (это займет 5-10 минут)
 docker compose build --no-cache
 
-# 5. Запустить контейнеры
+# 6. Запустить контейнеры
 docker compose up -d
 
-# 6. Проверить логи
+# 7. Проверить логи
 docker compose logs -f app
 ```
 
@@ -81,7 +100,18 @@ docker compose logs app | tail -20
 
 Должно быть:
 ```
+Database directory already exists: /app/data
+Database directory is writable
+Opening database: /app/data/applications.db
+Database opened successfully
 ✓ Ready in XXXms
+```
+
+**Если видите ошибку `EACCES: permission denied, access '/app/data'`:**
+```bash
+docker compose down
+sudo chown -R 1001:1001 ./data
+docker compose up -d
 ```
 
 ### 4. Создание заявки работает
@@ -188,7 +218,34 @@ node_modules/
 
 ## 🐛 Если проблема осталась
 
-### 1. Проверьте логи сборки
+### 1. Ошибка `EACCES: permission denied, access '/app/data'`
+
+**Причина:** Директория `./data` на хосте принадлежит root, а контейнер работает от пользователя `nextjs` (uid 1001).
+
+**Решение:**
+```bash
+cd ~/tap-drink-coffee
+docker compose down
+
+# Проверить владельца директории
+ls -la ./data
+
+# Изменить владельца на uid 1001 (пользователь nextjs в контейнере)
+sudo chown -R 1001:1001 ./data
+sudo chmod -R 755 ./data
+
+# Запустить снова
+docker compose up -d
+```
+
+**Альтернатива:** Удалить директорию и дать контейнеру создать её заново:
+```bash
+docker compose down
+sudo rm -rf ./data
+docker compose up -d
+```
+
+### 2. Проверьте логи сборки
 
 ```bash
 docker compose build --no-cache 2>&1 | tee build.log

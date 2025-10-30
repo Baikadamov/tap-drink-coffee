@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Создаем сессию
-    await createSession(admin.id, admin.username)
+    const token = await createSession(admin.id, admin.username)
+    console.log("✅ Сессия создана для пользователя:", admin.username)
 
     return NextResponse.json({
       success: true,

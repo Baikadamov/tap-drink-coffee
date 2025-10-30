@@ -24,10 +24,16 @@ export async function createSession(userId: number, username: string) {
   const cookieStore = await cookies()
   cookieStore.set("session", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    // Используем secure только если есть HTTPS (проверяем переменную окружения)
+    secure: process.env.USE_HTTPS === "true",
     expires: expiresAt,
     sameSite: "lax",
     path: "/",
+  })
+
+  console.log("🍪 Cookie установлена:", {
+    secure: process.env.USE_HTTPS === "true",
+    expires: expiresAt,
   })
 
   return token

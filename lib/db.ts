@@ -91,9 +91,14 @@ function initDatabase() {
   const adminExists = database.prepare("SELECT COUNT(*) as count FROM admins").get() as { count: number }
 
   if (adminExists.count === 0) {
-    const passwordHash = bcrypt.hashSync("admin123", 10)
-    database.prepare("INSERT INTO admins (username, password_hash) VALUES (?, ?)").run("admin", passwordHash)
-    console.log("✅ Создан дефолтный администратор: admin / admin123")
+    const defaultUsername = "tapdrink_admin"
+    const defaultPassword = "TapDrink2024!Secure"
+    const passwordHash = bcrypt.hashSync(defaultPassword, 10)
+    database.prepare("INSERT INTO admins (username, password_hash) VALUES (?, ?)").run(defaultUsername, passwordHash)
+    console.log("✅ Создан дефолтный администратор")
+    console.log(`   Логин: ${defaultUsername}`)
+    console.log(`   Пароль: ${defaultPassword}`)
+    console.log("   ⚠️  ВАЖНО: Сохраните эти данные и смените пароль после первого входа!")
   }
 }
 

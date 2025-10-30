@@ -28,7 +28,8 @@ export default function AdminLoginPage() {
 
       if (response.ok) {
         toast.success("Успешный вход!")
-        router.push("/admin/applications")
+        // Используем window.location для надежного редиректа
+        window.location.href = "/admin/applications"
       } else {
         toast.error("Ошибка входа", {
           description: data.error || "Неверный логин или пароль",
@@ -98,17 +99,6 @@ export default function AdminLoginPage() {
               {isLoading ? "Вход..." : "Войти"}
             </Button>
           </form>
-
-          {/* Default credentials hint */}
-          <div className="text-center text-sm text-gray-500 bg-gray-50 rounded-xl p-4">
-            <p className="font-medium mb-1">Дефолтные учетные данные:</p>
-            <p>
-              Логин: <span className="font-mono font-semibold">admin</span>
-            </p>
-            <p>
-              Пароль: <span className="font-mono font-semibold">admin123</span>
-            </p>
-          </div>
         </div>
 
         {/* Back to home */}
