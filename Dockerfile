@@ -4,8 +4,9 @@ FROM node:20-alpine AS base
 # Установка зависимостей для компиляции нативных модулей (better-sqlite3)
 RUN apk add --no-cache libc6-compat python3 make g++ sqlite
 
-# Установка pnpm
+# Установка pnpm и node-gyp
 RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g node-gyp
 
 # Установка зависимостей только когда нужно
 FROM base AS deps
@@ -14,11 +15,18 @@ WORKDIR /app
 # Копируем файлы зависимостей
 COPY package.json pnpm-lock.yaml ./
 
-# Устанавливаем зависимости с пересборкой нативных модулей
+# Устанавливаем зависимости
 RUN pnpm install --no-frozen-lockfile
 
-# Пересобираем better-sqlite3 для текущей платформы
-RUN pnpm rebuild better-sqlite3
+# Компилируем better-sqlite3 напрямую через node-gyp
+RUN cd /app/node_modules/.pnpm/better-sqlite3*/node_modules/better-sqlite3 && \
+    node-gyp rebuild
+
+# Проверяем что файл создан (для отладки)
+RUN echo "=== Checking better-sqlite3 build ===" && \
+    find /app/node_modules -name "better_sqlite3.node" -type f -exec ls -lh {} \; && \
+    echo "=== Build directory contents ===" && \
+    ls -la /app/node_modules/.pnpm/better-sqlite3*/node_modules/better-sqlite3/build/ 2>/dev/null || echo "Build directory not found"
 
 # Сборка приложения
 FROM base AS builder
@@ -64,6 +72,9 @@ COPY --from=builder /app/.next/static ./.next/static
 # Копируем весь .pnpm каталог чтобы получить все версии и зависимости
 COPY --from=deps /app/node_modules/.pnpm ./node_modules/.pnpm
 COPY --from=deps /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+
+# Проверяем что файл скопирован (для отладки)
+RUN ls -la /app/node_modules/.pnpm/better-sqlite3*/node_modules/better-sqlite3/build/ || echo "Build directory not found"
 
 # Устанавливаем правильные права
 RUN chown -R nextjs:nodejs /app

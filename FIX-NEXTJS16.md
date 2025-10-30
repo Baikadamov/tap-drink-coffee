@@ -1,10 +1,14 @@
-# 🔧 Исправление для Next.js 16
+# 🔧 Исправление для Next.js 16 и better-sqlite3
 
-## ✅ Проблема исправлена!
+## ✅ Проблемы исправлены!
 
-Ошибка была связана с изменениями в Next.js 16:
+### Проблема 1: Next.js 16 конфигурация
 - `experimental.serverComponentsExternalPackages` переименован в `serverExternalPackages`
 - Turbopack теперь по умолчанию, webpack конфигурация конфликтует с ним
+
+### Проблема 2: Копирование нативных модулей
+- Нативный модуль `better-sqlite3` копировался из неправильной стадии Docker
+- Модуль компилировался в `deps`, но копировался из `builder`
 
 ## 🚀 Что делать на сервере
 
@@ -84,7 +88,7 @@ curl http://localhost
 
 ## 📋 Что было изменено
 
-### Файл: next.config.mjs
+### Файл 1: next.config.mjs
 
 **Было:**
 ```javascript
@@ -104,6 +108,24 @@ webpack: (config, { isServer }) => {
 serverExternalPackages: ['better-sqlite3'],
 turbopack: {},
 ```
+
+### Файл 2: Dockerfile
+
+**Было:**
+```dockerfile
+# Копируем node_modules с скомпилированным better-sqlite3
+COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
+COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+```
+
+**Стало:**
+```dockerfile
+# Копируем скомпилированный better-sqlite3 из deps (где он был пересобран)
+COPY --from=deps /app/node_modules/.pnpm ./node_modules/.pnpm
+COPY --from=deps /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+```
+
+**Ключевое изменение:** Копируем из `deps` вместо `builder`, потому что именно в `deps` выполняется `pnpm rebuild better-sqlite3`
 
 ## 🐛 Если проблема осталась
 

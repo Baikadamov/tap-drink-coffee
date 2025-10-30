@@ -3,6 +3,7 @@
 **Дата:** 2025-10-30
 **Обновление 1:** 2025-10-30 (Next.js 16 конфигурация)
 **Обновление 2:** 2025-10-30 (Копирование нативных модулей в runtime)
+**Обновление 3:** 2025-10-30 (Компиляция через node-gyp - ФИНАЛЬНОЕ РЕШЕНИЕ)
 
 ## Проблема #1: better-sqlite3
 
@@ -149,7 +150,34 @@ curl http://localhost
 3. Проверьте логи: `docker compose logs -f`
 4. Убедитесь, что используете последнюю версию файлов: `git pull`
 
-## Проблема #2: Next.js 16 конфигурация
+## Проблема #2: Копирование нативных модулей в runtime
+
+При создании заявки возникала ошибка:
+```
+Error: Could not locate the bindings file for better-sqlite3
+ → /app/node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/build/better_sqlite3.node
+```
+
+**Причина:**
+- Нативный модуль `better-sqlite3` компилировался в стадии `deps`
+- Но копировался из стадии `builder` в финальный образ
+- В `builder` модуль не был пересобран, поэтому копировалась неправильная версия
+
+**Решение:**
+- Копируем скомпилированный `better-sqlite3` из стадии `deps` (где он был пересобран)
+- Копируем весь `.pnpm` каталог для сохранения всех зависимостей
+
+**Изменения в Dockerfile:**
+```dockerfile
+# Было:
+COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
+
+# Стало:
+COPY --from=deps /app/node_modules/.pnpm ./node_modules/.pnpm
+COPY --from=deps /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+```
+
+## Проблема #3: Next.js 16 конфигурация
 
 При сборке возникала ошибка:
 ```
