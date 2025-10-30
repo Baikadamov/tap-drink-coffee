@@ -7,21 +7,44 @@ import fs from "fs"
 const dbDir = path.join(process.cwd(), "data")
 const dbPath = path.join(dbDir, "applications.db")
 
-// Создаем директорию для БД если её нет
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true })
+let db: Database.Database | null = null
+let isInitialized = false
+
+// Функция для получения экземпляра базы данных
+function getDatabase(): Database.Database {
+  // Пропускаем инициализацию во время сборки Next.js
+  if (process.env.SKIP_DB_INIT === "1") {
+    throw new Error("Database is not available during build time")
+  }
+
+  if (!db) {
+    // Создаем директорию для БД если её нет
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true })
+    }
+
+    // Инициализация базы данных
+    db = new Database(dbPath)
+
+    // Включаем поддержку внешних ключей
+    db.pragma("foreign_keys = ON")
+
+    // Инициализируем таблицы
+    if (!isInitialized) {
+      initDatabase()
+      isInitialized = true
+    }
+  }
+
+  return db
 }
-
-// Инициализация базы данных
-const db = new Database(dbPath)
-
-// Включаем поддержку внешних ключей
-db.pragma("foreign_keys = ON")
 
 // Создание таблиц
 function initDatabase() {
+  const database = db!
+
   // Таблица заявок
-  db.exec(`
+  database.exec(`
     CREATE TABLE IF NOT EXISTS applications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       coffee_shop_name TEXT NOT NULL,
@@ -37,7 +60,7 @@ function initDatabase() {
   `)
 
   // Таблица администраторов
-  db.exec(`
+  database.exec(`
     CREATE TABLE IF NOT EXISTS admins (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
@@ -47,17 +70,14 @@ function initDatabase() {
   `)
 
   // Создаем дефолтного администратора если его нет
-  const adminExists = db.prepare("SELECT COUNT(*) as count FROM admins").get() as { count: number }
+  const adminExists = database.prepare("SELECT COUNT(*) as count FROM admins").get() as { count: number }
 
   if (adminExists.count === 0) {
     const passwordHash = bcrypt.hashSync("admin123", 10)
-    db.prepare("INSERT INTO admins (username, password_hash) VALUES (?, ?)").run("admin", passwordHash)
+    database.prepare("INSERT INTO admins (username, password_hash) VALUES (?, ?)").run("admin", passwordHash)
     console.log("✅ Создан дефолтный администратор: admin / admin123")
   }
 }
-
-// Инициализируем БД при импорте
-initDatabase()
 
 // Типы для TypeScript
 export interface Application {
@@ -93,7 +113,8 @@ export interface NewApplication {
 export const applicationQueries = {
   // Создать новую заявку
   create: (data: NewApplication): Application => {
-    const stmt = db.prepare(`
+    const database = getDatabase()
+    const stmt = database.prepare(`
       INSERT INTO applications (coffee_shop_name, address, contact_person, phone, branches, social)
       VALUES (?, ?, ?, ?, ?, ?)
     `)
@@ -112,35 +133,40 @@ export const applicationQueries = {
 
   // Получить все заявки
   getAll: (): Application[] => {
-    return db.prepare("SELECT * FROM applications ORDER BY created_at DESC").all() as Application[]
+    const database = getDatabase()
+    return database.prepare("SELECT * FROM applications ORDER BY created_at DESC").all() as Application[]
   },
 
   // Получить заявку по ID
   getById: (id: number): Application | undefined => {
-    return db.prepare("SELECT * FROM applications WHERE id = ?").get(id) as Application | undefined
+    const database = getDatabase()
+    return database.prepare("SELECT * FROM applications WHERE id = ?").get(id) as Application | undefined
   },
 
   // Обновить статус заявки
   updateStatus: (id: number, status: Application["status"]): Application | undefined => {
-    db.prepare("UPDATE applications SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(status, id)
+    const database = getDatabase()
+    database.prepare("UPDATE applications SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(status, id)
     return applicationQueries.getById(id)
   },
 
   // Удалить заявку
   delete: (id: number): void => {
-    db.prepare("DELETE FROM applications WHERE id = ?").run(id)
+    const database = getDatabase()
+    database.prepare("DELETE FROM applications WHERE id = ?").run(id)
   },
 
   // Получить статистику
   getStats: () => {
-    const total = db.prepare("SELECT COUNT(*) as count FROM applications").get() as { count: number }
-    const newCount = db.prepare("SELECT COUNT(*) as count FROM applications WHERE status = 'new'").get() as {
+    const database = getDatabase()
+    const total = database.prepare("SELECT COUNT(*) as count FROM applications").get() as { count: number }
+    const newCount = database.prepare("SELECT COUNT(*) as count FROM applications WHERE status = 'new'").get() as {
       count: number
     }
-    const contacted = db.prepare("SELECT COUNT(*) as count FROM applications WHERE status = 'contacted'").get() as {
+    const contacted = database.prepare("SELECT COUNT(*) as count FROM applications WHERE status = 'contacted'").get() as {
       count: number
     }
-    const approved = db.prepare("SELECT COUNT(*) as count FROM applications WHERE status = 'approved'").get() as {
+    const approved = database.prepare("SELECT COUNT(*) as count FROM applications WHERE status = 'approved'").get() as {
       count: number
     }
 
@@ -157,16 +183,18 @@ export const applicationQueries = {
 export const adminQueries = {
   // Найти администратора по username
   findByUsername: (username: string): Admin | undefined => {
-    return db.prepare("SELECT * FROM admins WHERE username = ?").get(username) as Admin | undefined
+    const database = getDatabase()
+    return database.prepare("SELECT * FROM admins WHERE username = ?").get(username) as Admin | undefined
   },
 
   // Создать нового администратора
   create: (username: string, password: string): Admin => {
+    const database = getDatabase()
     const passwordHash = bcrypt.hashSync(password, 10)
-    const stmt = db.prepare("INSERT INTO admins (username, password_hash) VALUES (?, ?)")
+    const stmt = database.prepare("INSERT INTO admins (username, password_hash) VALUES (?, ?)")
     const result = stmt.run(username, passwordHash)
 
-    return db.prepare("SELECT * FROM admins WHERE id = ?").get(result.lastInsertRowid) as Admin
+    return database.prepare("SELECT * FROM admins WHERE id = ?").get(result.lastInsertRowid) as Admin
   },
 
   // Проверить пароль
@@ -175,5 +203,6 @@ export const adminQueries = {
   },
 }
 
-export default db
+export { getDatabase }
+export default getDatabase
 
