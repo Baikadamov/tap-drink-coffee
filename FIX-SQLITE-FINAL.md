@@ -3,16 +3,18 @@
 ## ✅ Проблема исправлена!
 
 ### Что случилось:
-При создании заявки возникала ошибка:
-```
-Error: Could not locate the bindings file for better-sqlite3
-```
+При создании заявки возникали ошибки:
+1. `Error: Could not locate the bindings file for better-sqlite3`
+2. `SqliteError: unable to open database file (SQLITE_CANTOPEN)`
 
 ### Причина:
-`pnpm rebuild` не компилировал нативный модуль правильно для Alpine Linux.
+1. `pnpm rebuild` не компилировал нативный модуль правильно для Alpine Linux
+2. Неправильный порядок установки прав доступа к директории `/app/data`
 
 ### Решение:
-Используем `node-gyp rebuild` напрямую для компиляции нативного модуля.
+1. Используем `node-gyp rebuild` напрямую для компиляции нативного модуля
+2. Создаем директорию БД после копирования всех файлов
+3. Добавлено подробное логирование для отладки
 
 ---
 

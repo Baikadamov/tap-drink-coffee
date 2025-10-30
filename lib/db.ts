@@ -18,21 +18,39 @@ function getDatabase(): Database.Database {
   }
 
   if (!db) {
-    // Создаем директорию для БД если её нет
-    if (!fs.existsSync(dbDir)) {
-      fs.mkdirSync(dbDir, { recursive: true })
-    }
+    try {
+      // Создаем директорию для БД если её нет
+      if (!fs.existsSync(dbDir)) {
+        console.log(`Creating database directory: ${dbDir}`)
+        fs.mkdirSync(dbDir, { recursive: true })
+        console.log(`Database directory created successfully`)
+      } else {
+        console.log(`Database directory already exists: ${dbDir}`)
+      }
 
-    // Инициализация базы данных
-    db = new Database(dbPath)
+      // Проверяем права на запись
+      fs.accessSync(dbDir, fs.constants.W_OK)
+      console.log(`Database directory is writable`)
 
-    // Включаем поддержку внешних ключей
-    db.pragma("foreign_keys = ON")
+      // Инициализация базы данных
+      console.log(`Opening database: ${dbPath}`)
+      db = new Database(dbPath)
+      console.log(`Database opened successfully`)
 
-    // Инициализируем таблицы
-    if (!isInitialized) {
-      initDatabase()
-      isInitialized = true
+      // Включаем поддержку внешних ключей
+      db.pragma("foreign_keys = ON")
+
+      // Инициализируем таблицы
+      if (!isInitialized) {
+        initDatabase()
+        isInitialized = true
+      }
+    } catch (error) {
+      console.error(`Error initializing database:`, error)
+      console.error(`Current working directory: ${process.cwd()}`)
+      console.error(`Database directory: ${dbDir}`)
+      console.error(`Database path: ${dbPath}`)
+      throw error
     }
   }
 

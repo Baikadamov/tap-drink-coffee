@@ -150,7 +150,7 @@ curl http://localhost
 3. Проверьте логи: `docker compose logs -f`
 4. Убедитесь, что используете последнюю версию файлов: `git pull`
 
-## Проблема #2: Копирование нативных модулей в runtime
+## Проблема #2: Компиляция better-sqlite3 (ФИНАЛЬНОЕ РЕШЕНИЕ)
 
 При создании заявки возникала ошибка:
 ```
@@ -159,23 +159,43 @@ Error: Could not locate the bindings file for better-sqlite3
 ```
 
 **Причина:**
-- Нативный модуль `better-sqlite3` компилировался в стадии `deps`
-- Но копировался из стадии `builder` в финальный образ
-- В `builder` модуль не был пересобран, поэтому копировалась неправильная версия
+- `pnpm rebuild better-sqlite3` не компилировал нативный модуль правильно для Alpine Linux
+- Файл `better_sqlite3.node` не создавался в директории `build/Release/`
 
 **Решение:**
-- Копируем скомпилированный `better-sqlite3` из стадии `deps` (где он был пересобран)
-- Копируем весь `.pnpm` каталог для сохранения всех зависимостей
+- Используем `node-gyp rebuild` напрямую для компиляции нативного модуля
+- Добавили установку `node-gyp` глобально
+- Переходим в директорию модуля и компилируем напрямую
 
 **Изменения в Dockerfile:**
+
+1. Установка node-gyp (строка 9):
+```dockerfile
+RUN npm install -g node-gyp
+```
+
+2. Компиляция через node-gyp (строки 21-23):
 ```dockerfile
 # Было:
-COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
+RUN pnpm rebuild better-sqlite3
 
 # Стало:
-COPY --from=deps /app/node_modules/.pnpm ./node_modules/.pnpm
-COPY --from=deps /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+RUN cd /app/node_modules/.pnpm/better-sqlite3*/node_modules/better-sqlite3 && \
+    node-gyp rebuild
 ```
+
+3. Добавлена отладочная информация (строки 25-29):
+```dockerfile
+RUN echo "=== Checking better-sqlite3 build ===" && \
+    find /app/node_modules -name "better_sqlite3.node" -type f -exec ls -lh {} \; && \
+    echo "=== Build directory contents ===" && \
+    ls -la /app/node_modules/.pnpm/better-sqlite3*/node_modules/better-sqlite3/build/
+```
+
+**Результат:**
+- Файл `better_sqlite3.node` успешно компилируется
+- Копируется в финальный образ из стадии `deps`
+- Приложение работает без ошибок
 
 ## Проблема #3: Next.js 16 конфигурация
 

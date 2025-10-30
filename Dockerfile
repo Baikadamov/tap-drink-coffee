@@ -59,9 +59,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Создаем директорию для базы данных
-RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
-
 # Копируем необходимые файлы из builder
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
@@ -76,8 +73,8 @@ COPY --from=deps /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 # Проверяем что файл скопирован (для отладки)
 RUN ls -la /app/node_modules/.pnpm/better-sqlite3*/node_modules/better-sqlite3/build/ || echo "Build directory not found"
 
-# Устанавливаем правильные права
-RUN chown -R nextjs:nodejs /app
+# Создаем директорию для базы данных и устанавливаем права на все файлы
+RUN mkdir -p /app/data && chown -R nextjs:nodejs /app
 
 USER nextjs
 
