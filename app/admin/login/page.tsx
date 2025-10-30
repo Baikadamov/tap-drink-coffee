@@ -46,21 +46,21 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#EBE6DD] to-[#cfa173] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#EBE6DD] to-[#cfa173] flex items-center justify-center p-4 md:p-6">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 lg:p-12 space-y-8">
+        <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 lg:p-12 space-y-6 md:space-y-8">
           {/* Logo */}
           <div className="text-center">
-            <div className="text-[#FF5C00] font-bold text-4xl mb-2">
+            <div className="text-[#FF5C00] font-bold text-3xl md:text-4xl mb-2">
               Tap
               <br />
               Drink
             </div>
-            <p className="text-gray-600 text-lg">Админ-панель</p>
+            <p className="text-gray-600 text-base md:text-lg">Админ-панель</p>
           </div>
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
             <div className="space-y-2">
               <label htmlFor="username" className="block text-sm font-semibold text-gray-700">
                 Логин
@@ -71,7 +71,7 @@ export default function AdminLoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#FF5C00] focus:ring-2 focus:ring-[#FF5C00]/20 outline-none transition-all"
+                className="w-full px-4 py-2.5 md:py-3 rounded-xl border border-gray-300 focus:border-[#FF5C00] focus:ring-2 focus:ring-[#FF5C00]/20 outline-none transition-all text-sm md:text-base"
                 placeholder="Введите логин"
               />
             </div>
@@ -86,7 +86,7 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#FF5C00] focus:ring-2 focus:ring-[#FF5C00]/20 outline-none transition-all"
+                className="w-full px-4 py-2.5 md:py-3 rounded-xl border border-gray-300 focus:border-[#FF5C00] focus:ring-2 focus:ring-[#FF5C00]/20 outline-none transition-all text-sm md:text-base"
                 placeholder="Введите пароль"
               />
             </div>
@@ -94,7 +94,7 @@ export default function AdminLoginPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-full bg-[#FF5C00] hover:bg-[#E54F00] text-white py-6 text-lg font-semibold disabled:opacity-50"
+              className="w-full rounded-full bg-[#FF5C00] hover:bg-[#E54F00] text-white py-5 md:py-6 text-base md:text-lg font-semibold disabled:opacity-50"
             >
               {isLoading ? "Вход..." : "Войти"}
             </Button>
@@ -102,8 +102,8 @@ export default function AdminLoginPage() {
         </div>
 
         {/* Back to home */}
-        <div className="text-center mt-6">
-          <a href="/" className="text-white hover:text-[#FF5C00] transition-colors font-medium">
+        <div className="text-center mt-4 md:mt-6">
+          <a href="/" className="text-white hover:text-[#FF5C00] transition-colors font-medium text-sm md:text-base">
             ← Вернуться на главную
           </a>
         </div>
