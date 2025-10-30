@@ -59,11 +59,11 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Копируем node_modules с скомпилированным better-sqlite3
+# Копируем скомпилированный better-sqlite3 из deps (где он был пересобран)
 # Standalone режим Next.js не включает нативные модули автоматически
-COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
-COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
-COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
+# Копируем весь .pnpm каталог чтобы получить все версии и зависимости
+COPY --from=deps /app/node_modules/.pnpm ./node_modules/.pnpm
+COPY --from=deps /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 
 # Устанавливаем правильные права
 RUN chown -R nextjs:nodejs /app
